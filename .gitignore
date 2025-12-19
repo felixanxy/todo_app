@@ -1,0 +1,40 @@
+# .gitignore - Files to exclude from Git
+
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Test coverage
+coverage/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.test
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*~

@@ -1,0 +1,40 @@
+# .dockerignore - Files to exclude from Docker build
+
+# Node modules (will be installed in container)
+node_modules/
+npm-debug.log
+
+# Tests and development files
+*.test.js
+coverage/
+.eslintrc.json
+jest.config.js
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Terraform
+terraform/
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
