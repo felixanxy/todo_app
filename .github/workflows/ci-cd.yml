@@ -101,6 +101,8 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          # Remove any carriage returns or extra whitespace
+          sed -i 's/\r$//' ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
@@ -109,14 +111,14 @@ jobs:
           EC2_USER: ubuntu
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}:latest
         run: |
-          ssh -i ~/.ssh/deploy_key $EC2_USER@$EC2_HOST << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'ENDSSH'
             set -e
             
             echo "🚀 Starting deployment..."
             
             # Pull latest image
             echo "📥 Pulling Docker image..."
-            docker pull $DOCKER_IMAGE
+            docker pull $DOCKER_IMAGE || { echo "Failed to pull image"; exit 1; }
             
             # Stop old container if exists
             echo "🛑 Stopping old container..."
@@ -130,7 +132,7 @@ jobs:
               --restart unless-stopped \
               -p 3000:3000 \
               -e NODE_ENV=production \
-              $DOCKER_IMAGE
+              $DOCKER_IMAGE || { echo "Failed to start container"; exit 1; }
             
             # Wait for health check
             echo "🏥 Checking application health..."
