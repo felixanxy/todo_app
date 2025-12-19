@@ -14,5 +14,6 @@
     "semi": ["error", "always"],
     "no-unused-vars": ["warn"],
     "no-console": "off"
-  }
+  },
+  "ignorePatterns": ["node_modules/", "coverage/", "public/"]
 }
