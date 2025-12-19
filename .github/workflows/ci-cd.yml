@@ -111,53 +111,53 @@ jobs:
           EC2_USER: ubuntu
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}:latest
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
             set -e
             
-            echo "🚀 Starting deployment..."
+            echo '🚀 Starting deployment...'
             
             # Pull latest image
-            echo "📥 Pulling Docker image..."
-            docker pull $DOCKER_IMAGE || { echo "Failed to pull image"; exit 1; }
+            echo '📥 Pulling Docker image...'
+            docker pull $DOCKER_IMAGE || { echo 'Failed to pull image'; exit 1; }
             
             # Stop old container if exists
-            echo "🛑 Stopping old container..."
+            echo '🛑 Stopping old container...'
             docker stop todo-app 2>/dev/null || true
             docker rm todo-app 2>/dev/null || true
             
             # Start new container
-            echo "▶️  Starting new container..."
+            echo '▶️  Starting new container...'
             docker run -d \
               --name todo-app \
               --restart unless-stopped \
               -p 3000:3000 \
               -e NODE_ENV=production \
-              $DOCKER_IMAGE || { echo "Failed to start container"; exit 1; }
+              $DOCKER_IMAGE || { echo 'Failed to start container'; exit 1; }
             
             # Wait for health check
-            echo "🏥 Checking application health..."
+            echo '🏥 Checking application health...'
             sleep 5
             
             for i in {1..30}; do
               if curl -f http://localhost:3000/health > /dev/null 2>&1; then
-                echo "✅ Application is healthy!"
+                echo '✅ Application is healthy!'
                 break
               fi
-              echo "⏳ Waiting for application... ($i/30)"
+              echo '⏳ Waiting for application... ($i/30)'
               sleep 2
-              if [ $i -eq 30 ]; then
-                echo "❌ Health check failed!"
+              if [ \$i -eq 30 ]; then
+                echo '❌ Health check failed!'
                 docker logs todo-app
                 exit 1
               fi
             done
             
             # Cleanup old images
-            echo "🧹 Cleaning up old images..."
-            docker image prune -af --filter "until=48h"
+            echo '🧹 Cleaning up old images...'
+            docker image prune -af --filter 'until=48h'
             
-            echo "✨ Deployment completed successfully!"
-          ENDSSH
+            echo '✨ Deployment completed successfully!'
+          "
 
       - name: Verify deployment
         run: |
