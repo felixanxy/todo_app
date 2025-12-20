@@ -47,8 +47,8 @@ jobs:
         run: npm ci
 
       # Linting skipped for faster demo - uncomment if needed
-       - name: Run ESLint
-         run: npm run lint
+      - name: Run ESLint
+        run: npm run lint
 
       - name: Run tests
         run: npm test
