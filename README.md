@@ -405,4 +405,3 @@ This is a teaching project! Feel free to:
 
 ---
 
-**Built with for DevOps learners**
