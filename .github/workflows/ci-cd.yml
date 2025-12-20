@@ -24,7 +24,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: todo_db
+          POSTGRES_DB: todoapp
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -53,7 +53,11 @@ jobs:
       - name: Run tests
         run: npm test
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/todo_db
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: todoapp
+          DB_USER: postgres
+          DB_PASSWORD: postgres
           NODE_ENV: test
 
       - name: Upload coverage reports
