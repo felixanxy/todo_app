@@ -128,12 +128,61 @@ jobs:
           sed -i 's/\r$//' ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy docker-compose.yml to EC2
+      - name: Create production docker-compose.yml
+        run: |
+          cat > docker-compose.prod.yml << 'EOF'
+          version: '3.8'
+
+          services:
+            db:
+              image: postgres:15-alpine
+              container_name: todo-db
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: todoapp
+                POSTGRES_USER: postgres
+                POSTGRES_PASSWORD: postgres
+              ports:
+                - "5432:5432"
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+
+            app:
+              image: IMAGE_PLACEHOLDER
+              container_name: todo-app
+              restart: unless-stopped
+              ports:
+                - "3000:3000"
+              environment:
+                NODE_ENV: production
+                DB_HOST: db
+                DB_PORT: 5432
+                DB_NAME: todoapp
+                DB_USER: postgres
+                DB_PASSWORD: postgres
+              depends_on:
+                db:
+                  condition: service_healthy
+
+          volumes:
+            postgres_data:
+              driver: local
+          EOF
+          
+          # Replace placeholder with actual image
+          sed -i "s|IMAGE_PLACEHOLDER|${{ env.DOCKER_IMAGE }}:latest|g" docker-compose.prod.yml
+
+      - name: Copy docker-compose to EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ubuntu
         run: |
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no docker-compose.yml $EC2_USER@$EC2_HOST:~/
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no docker-compose.prod.yml $EC2_USER@$EC2_HOST:~/docker-compose.yml
 
       - name: Deploy to EC2
         env:
@@ -145,16 +194,6 @@ jobs:
             set -e
             
             echo '🚀 Starting deployment...'
-            
-            # Update docker-compose.yml to use the production image
-            echo '📝 Configuring docker-compose for production...'
-            sed -i 's|build: .|image: $DOCKER_IMAGE|g' docker-compose.yml
-            sed -i 's|NODE_ENV: development|NODE_ENV: production|g' docker-compose.yml
-            
-            # Remove development-specific volume mounts
-            sed -i '/- \.\/server\.js:\/app\/server\.js/d' docker-compose.yml
-            sed -i '/- \.\/public:\/app\/public/d' docker-compose.yml
-            sed -i '/command: npm start/d' docker-compose.yml
             
             # Pull latest images
             echo '📥 Pulling images...'
