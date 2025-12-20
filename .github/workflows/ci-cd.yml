@@ -195,13 +195,17 @@ jobs:
             
             echo '🚀 Starting deployment...'
             
+            # Stop and remove any existing containers
+            echo '🛑 Stopping existing containers...'
+            docker stop todo-app todo-db 2>/dev/null || true
+            docker rm todo-app todo-db 2>/dev/null || true
+            
             # Pull latest images
             echo '📥 Pulling images...'
             docker compose pull
             
             # Deploy with docker compose
             echo '🚢 Deploying with Docker Compose...'
-            docker compose down
             docker compose up -d
             
             # Wait for health check
