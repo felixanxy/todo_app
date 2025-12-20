@@ -128,6 +128,13 @@ jobs:
           sed -i 's/\r$//' ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Copy docker-compose.yml to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ubuntu
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no docker-compose.yml $EC2_USER@$EC2_HOST:~/
+
       - name: Deploy to EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -139,38 +146,39 @@ jobs:
             
             echo '🚀 Starting deployment...'
             
-            # Pull latest image
-            echo '📥 Pulling Docker image...'
-            docker pull $DOCKER_IMAGE || { echo 'Failed to pull image'; exit 1; }
+            # Update docker-compose.yml to use the production image
+            echo '📝 Configuring docker-compose for production...'
+            sed -i 's|build: .|image: $DOCKER_IMAGE|g' docker-compose.yml
+            sed -i 's|NODE_ENV: development|NODE_ENV: production|g' docker-compose.yml
             
-            # Stop old container if exists
-            echo '🛑 Stopping old container...'
-            docker stop todo-app 2>/dev/null || true
-            docker rm todo-app 2>/dev/null || true
+            # Remove development-specific volume mounts
+            sed -i '/- \.\/server\.js:\/app\/server\.js/d' docker-compose.yml
+            sed -i '/- \.\/public:\/app\/public/d' docker-compose.yml
+            sed -i '/command: npm start/d' docker-compose.yml
             
-            # Start new container
-            echo '▶️  Starting new container...'
-            docker run -d \
-              --name todo-app \
-              --restart unless-stopped \
-              -p 3000:3000 \
-              -e NODE_ENV=production \
-              $DOCKER_IMAGE || { echo 'Failed to start container'; exit 1; }
+            # Pull latest images
+            echo '📥 Pulling images...'
+            docker compose pull
+            
+            # Deploy with docker compose
+            echo '🚢 Deploying with Docker Compose...'
+            docker compose down
+            docker compose up -d
             
             # Wait for health check
             echo '🏥 Checking application health...'
-            sleep 5
+            sleep 10
             
             for i in {1..30}; do
               if curl -f http://localhost:3000/health > /dev/null 2>&1; then
                 echo '✅ Application is healthy!'
                 break
               fi
-              echo '⏳ Waiting for application... ($i/30)'
+              echo '⏳ Waiting for application... (\$i/30)'
               sleep 2
               if [ \$i -eq 30 ]; then
                 echo '❌ Health check failed!'
-                docker logs todo-app
+                docker compose logs app
                 exit 1
               fi
             done
