@@ -1,9 +1,9 @@
-# DevOps CI/CD Pipeline Demo
+#  DevOps CI/CD Pipeline Demo
 
 A complete end-to-end CI/CD pipeline demonstrating modern DevOps practices using GitHub Actions, Terraform, Docker, and AWS.
 
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
@@ -17,21 +17,22 @@ A complete end-to-end CI/CD pipeline demonstrating modern DevOps practices using
 - [Monitoring](#monitoring)
 - [Troubleshooting](#troubleshooting)
 
-## 🎯 Overview
+##  Overview
 
-This project showcases a production-ready CI/CD pipeline for a simple Todo application. It demonstrates:
+This project showcases a production-ready CI/CD pipeline for a simple Todo application with PostgreSQL database. It demonstrates:
 
 - **Continuous Integration**: Automated testing and code quality checks
 - **Continuous Deployment**: Automated deployment to AWS EC2
 - **Infrastructure as Code**: Reproducible infrastructure using Terraform
 - **Containerization**: Docker for consistent environments
+- **Database Integration**: PostgreSQL with persistent storage
 - **Monitoring**: Health checks and deployment verification
 
-# Architecture
+##  Architecture
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│  Developer  │────▶|   GitHub    │────▶│   GitHub    │
+│  Developer  │────▶│    GitHub    │────▶│   GitHub    │
 │             │     │  Repository  │     │   Actions   │
 └─────────────┘     └──────────────┘     └──────┬──────┘
                                                  │
@@ -57,23 +58,30 @@ This project showcases a production-ready CI/CD pipeline for a simple Todo appli
                     │  ┌───────┐         ┌──────────┐   │
                     │  │ Nginx │────────▶│ Node.js  │   │
                     │  │  :80  │         │  :3000   │   │
-                    │  └───────┘         └──────────┘   │
+                    │  └───────┘         └────┬─────┘   │
+                    │                          │         │
+                    │                    ┌─────▼──────┐  │
+                    │                    │ PostgreSQL │  │
+                    │                    │   :5432    │  │
+                    │                    └────────────┘  │
                     └────────────────────────────────────┘
 ```
 
-## Tech Stack
+##  Tech Stack
 
 ### Application
 - **Backend**: Node.js + Express
 - **Frontend**: Vanilla JavaScript (Single Page App)
+- **Database**: PostgreSQL 15 (Alpine)
 - **Testing**: Jest + Supertest
 
 ### DevOps Tools
-- **CI/CD**: GitHub Actions 
+- **CI/CD**: GitHub Actions (2,000 free minutes/month)
 - **IaC**: Terraform (Infrastructure as Code)
-- **Containerization**: Docker + Docker Hub
-- **Cloud**: AWS EC2 t2.micro 
+- **Containerization**: Docker + Docker Compose
+- **Cloud**: AWS EC2 t3.micro (Free Tier)
 - **Web Server**: Nginx (Reverse Proxy)
+- **Database**: PostgreSQL in Docker with persistent volumes
 
 ### Why These Tools?
 
@@ -92,6 +100,8 @@ This project showcases a production-ready CI/CD pipeline for a simple Todo appli
 - ✅ Mark todos as complete/incomplete
 - ✅ Real-time statistics (total, completed, pending)
 - ✅ Responsive design
+- ✅ PostgreSQL database with persistent storage
+- ✅ Data survives deployments and container restarts
 - ✅ Health check endpoint for monitoring
 
 ### DevOps Features
@@ -105,9 +115,11 @@ This project showcases a production-ready CI/CD pipeline for a simple Todo appli
 
 ##  Prerequisites
 
-1. **GitHub Account** 
-2. **AWS Account** 
-3. **Docker Hub Account** 
+Before you begin, ensure you have:
+
+1. **GitHub Account** (free)
+2. **AWS Account** (free tier)
+3. **Docker Hub Account** (free)
 4. **Local Tools**:
    - Git
    - Terraform (≥ 1.0)
@@ -119,7 +131,7 @@ This project showcases a production-ready CI/CD pipeline for a simple Todo appli
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/felixanxy/todo_app.git
+git clone https://github.com/felixanxy/todo-app.git
 cd todo-app
 ```
 
@@ -146,7 +158,7 @@ Go to your GitHub repository → Settings → Secrets and add:
 
 | Secret Name | Description | How to Get |
 |-------------|-------------|------------|
-| `DOCKERHUB_USERNAME` | Docker Hub username | From Docker Hub profile |
+| `DOCKERHUB_USERNAME` | Your Docker Hub username | From Docker Hub profile |
 | `DOCKERHUB_TOKEN` | Docker Hub access token | Docker Hub → Account Settings → Security |
 | `EC2_HOST` | EC2 public IP address | From Terraform output |
 | `EC2_SSH_KEY` | Private SSH key | Content of `~/.ssh/id_rsa` |
@@ -159,14 +171,14 @@ git commit -m "Initial deployment"
 git push origin main
 ```
 
-### 5. Watch the Magic
+### 5. Watch the Magic 
 
 Go to your GitHub repository → Actions tab and watch the pipeline run!
 
 ##  Project Structure
 
 ```
-todo-app/
+devops-todo-app/
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml          # GitHub Actions pipeline
@@ -181,12 +193,15 @@ todo-app/
 ├── server.js                  # Node.js application
 ├── server.test.js             # Unit tests
 ├── Dockerfile                 # Container definition
+├── docker-compose.yml         # Local development setup
 ├── package.json               # Node.js dependencies
 ├── .eslintrc.json             # Code quality rules
+├── .env.example               # Environment variables template
+├── init-db.sql                # Database schema
 └── README.md                  # This file
 ```
 
-## 🔄 Pipeline Flow
+##  Pipeline Flow
 
 ### Stage 1: Continuous Integration (CI)
 
@@ -206,22 +221,44 @@ Code Push → Checkout → Install Dependencies → Lint → Test → Build
 ### Stage 2: Continuous Deployment (CD)
 
 ```
-Build Success → SSH to EC2 → Pull Image → Deploy → Health Check
+Build Success → SSH to EC2 → Deploy Database → Deploy App → Health Check
 ```
 
 **What happens:**
 1. SSH connection established to EC2
-2. Latest Docker image pulled
-3. Old container stopped (if exists)
-4. New container started
-5. Health check verifies deployment
-6. Old images cleaned up
+2. PostgreSQL container deployed with persistent storage
+3. Latest Docker image pulled for application
+4. Old app container stopped (if exists)
+5. New app container started (connected to database)
+6. Health check verifies both app and database
+7. Old images cleaned up
 
-**Duration**: ~1-2 minutes
+**Duration**: ~2-3 minutes
 
-### Total Pipeline Time: ~4-5 minutes ⚡
+### Total Pipeline Time: ~4-5 minutes
 
 ##  Deployment
+
+### Local Development with Docker Compose
+
+```bash
+# Start app and database locally
+docker-compose up
+
+# Run in background
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop everything
+docker-compose down
+
+# Stop and remove data
+docker-compose down -v
+```
+
+Access at http://localhost:3000
 
 ### Manual Deployment (Optional)
 
@@ -261,6 +298,7 @@ Expected response:
 ```json
 {
   "status": "healthy",
+  "database": "connected",
   "timestamp": "2024-12-18T10:30:00.000Z"
 }
 ```
@@ -269,17 +307,28 @@ Expected response:
 
 ```bash
 ssh ubuntu@YOUR_EC2_IP
+
+# App logs
 docker logs todo-app -f
+
+# Database logs
+docker logs todo-db -f
 ```
 
 ### Check Container Status
 
 ```bash
+# View running containers
 docker ps
-docker stats todo-app
+
+# Check app and database status
+docker ps | grep todo
+
+# View resource usage
+docker stats todo-app todo-db
 ```
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Issue: Pipeline fails at "Test & Lint" stage
 
@@ -305,6 +354,8 @@ curl localhost:3000/health
 1. Check security group allows port 80 (HTTP)
 2. Verify Nginx is running: `sudo systemctl status nginx`
 3. Check Nginx configuration: `sudo nginx -t`
+4. Verify app container is running: `docker ps | grep todo-app`
+5. Check database connection: `docker logs todo-app | grep database`
 
 ### Issue: Terraform apply fails
 
@@ -312,6 +363,26 @@ curl localhost:3000/health
 - Ensure AWS credentials are configured: `aws configure`
 - Check AWS free tier limits aren't exceeded
 - Verify SSH key exists at `~/.ssh/id_rsa.pub`
+
+### Issue: Database connection fails
+
+**Solution**:
+```bash
+# SSH to EC2 and check database
+ssh ubuntu@YOUR_EC2_IP
+
+# Check if database container is running
+docker ps | grep todo-db
+
+# Check database logs
+docker logs todo-db
+
+# Test database connection
+docker exec -it todo-db psql -U postgres -d todoapp -c "SELECT 1;"
+
+# Restart database if needed
+docker restart todo-db
+```
 
 ##  Learning Resources
 
@@ -333,3 +404,5 @@ This is a teaching project! Feel free to:
 - Share your deployment
 
 ---
+
+**Built with for DevOps learners**

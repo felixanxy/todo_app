@@ -127,6 +127,10 @@ resource "aws_instance" "todo_app" {
               # Add ubuntu user to docker group
               usermod -aG docker ubuntu
               
+              # Install Docker Compose
+              curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+              
               # Install Nginx
               apt-get install -y nginx
               
@@ -163,6 +167,9 @@ resource "aws_instance" "todo_app" {
               # Create deployment directory
               mkdir -p /home/ubuntu/app
               chown ubuntu:ubuntu /home/ubuntu/app
+              
+              # Create Docker network for app and database
+              docker network create todo-network 2>/dev/null || true
               
               # Log completion
               echo "Server setup completed at $(date)" > /var/log/user-data.log
